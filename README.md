@@ -12,6 +12,6 @@ get a user's tweets:
 	import birdwatch
 
 	session = birdwatch.init_session()
-	tweets = birdwatch.from_user(session, "parafactual", count=1000)
+	tweets = birdwatch.from_user(session, "parafactual", count=2000)
 
-`count` defaults to 3200.
+`count` defaults to 1000 and is not exact.

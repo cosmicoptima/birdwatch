@@ -79,7 +79,7 @@ def from_user_raw(session, username, pages):
     return data
 
 
-def from_user(session, username, count=3200):
+def from_user(session, username, count=1000):
     pages = ceil(count / 100)
     data = from_user_raw(session, username, pages)
 
