@@ -1,9 +1,6 @@
 from math import ceil
-import logging
-import random
 import re
 import requests
-from time import sleep
 
 __all__ = ["init_session", "from_user"]
 
