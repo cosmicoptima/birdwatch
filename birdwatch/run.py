@@ -28,48 +28,25 @@ def init_session():
 
     # don't set bearer token before getting guest token; this causes 401
     session = requests.Session()
-    session.headers.update(
-        {
-            "Authorization": "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-            "x-guest-token": get_token(),
-        }
-    )
+    session.headers.update({"Authorization": BEARER, "x-guest-token": get_token()})
 
     return session
 
 
-def get_token(wait_on_fail=False):
-    if wait_on_fail:
-        for i in range(8):
-            token, response = request_token()
-            if token is not None:
-                return token
-
-            time_to_wait = 8 ** i * random.uniform(0.5, 1.5)
-            logging.warning(
-                f"No guest token, status code {response.status_code}, retrying in {time_to_wait} secs"
-            )
-            sleep(time_to_wait)
-    else:
-        token, response = request_token()
-        if token is not None:
-            return token
-
-    raise APIException(
-        f"No guest token, status code {response.status_code}",
-        f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
-    )
-
-
-def request_token():
+def get_token():
     response = requests.get("https://twitter.com", headers={"User-Agent": USER_AGENT})
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
-    return (None if match is None else match.group(1)), response
+    if match is None:
+        raise APIException(
+            f"No guest token, status code {response.status_code}",
+            f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
+        )
+    return match.group(1)
 
 
-def get_page(session, q, cursor, wait_on_fail):
+def get_page(session, q, cursor):
     # counts >100 return 100 anyway
     # without "tweet_mode": "extended", long tweets are truncated
     #         "tweet_search_mode": "live", only the first few pages contain tweets
@@ -84,7 +61,7 @@ def get_page(session, q, cursor, wait_on_fail):
     response = session.get(URL, params=params)
 
     if response.status_code == 429:
-        session.headers["x-guest-token"] = get_token(wait_on_fail)
+        session.headers["x-guest-token"] = get_token()
         response = session.get(URL, params=params)
     if not response.ok:
         raise APIException(
@@ -105,11 +82,11 @@ def get_page(session, q, cursor, wait_on_fail):
     return data, next_cursor
 
 
-def from_user_raw(session, username, pages, wait_on_fai):
+def from_user_raw(session, username, pages):
     data, cursor = get_page(session, f"from:{username}", -1)
 
     for _ in range(pages - 1):
-        next_page, cursor = get_page(session, f"from:{username}", cursor, wait_on_fail)
+        next_page, cursor = get_page(session, f"from:{username}", cursor)
 
         for category in data:
             data[category].update(next_page[category])
@@ -117,10 +94,10 @@ def from_user_raw(session, username, pages, wait_on_fai):
     return data
 
 
-def from_user(session, username, count=1000, wait_on_fail=False):
+def from_user(session, username, count=1000):
     "Returns a user's tweets."
     pages = ceil(count / 100)
-    data = from_user_raw(session, username, pages, wait_on_fail)
+    data = from_user_raw(session, username, pages)
 
     # raw returned mentions as well before; not sure if it does now
     # if not, most of this is unnecessary
