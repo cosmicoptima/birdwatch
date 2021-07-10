@@ -11,7 +11,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 URL = "https://api.twitter.com/2/search/adaptive.json"
 
 
-class APIException(Exception):
+class BirdwatchException(Exception):
     def __init__(self, message, log_message=None):
         super().__init__(message)
 
@@ -35,7 +35,7 @@ def get_token():
     match = re.search(r'\("gt=(\d+);', response.text)
 
     if match is None:
-        raise APIException(
+        raise BirdwatchException(
             f"No guest token, status code {response.status_code}",
             f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
         )
@@ -61,7 +61,7 @@ def get_page(session, q, cursor):
         session.headers["x-guest-token"] = get_token()
         response = session.get(URL, params=params)
     if not response.ok:
-        raise APIException(
+        raise BirdwatchException(
             f"Failed with status code {response.status_code}",
             f"Failed with status code {response.status_code}, full text:\n\n{response.text}",
         )
@@ -106,7 +106,7 @@ def from_user(session, username, count=1000):
         ][0]
     except IndexError:
         all_ids = [user["id"] for user in data["users"].values()]
-        raise APIException(
+        raise BirdwatchException(
             "Could not get user ID",
             f"Could not get user ID, all users retrieved:\n\n{all_ids}",
         )
