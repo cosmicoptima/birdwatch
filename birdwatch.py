@@ -60,7 +60,7 @@ def get_page(session, q, cursor):
     # single guest token can only be used so many times
     if response.status_code == 429:
         session.headers["x-guest-token"] = get_token()
-        response = session.get(URL, params=params)
+        response = session.get(SEARCH_URL, params=params)
     if not response.ok:
         raise BirdwatchException(
             f"Failed with status code {response.status_code}",
