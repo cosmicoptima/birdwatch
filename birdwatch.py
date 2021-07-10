@@ -9,7 +9,7 @@ BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 SEARCH_URL = "https://api.twitter.com/2/search/adaptive.json"
-TOKEN_URL = "https://mobile.twitter.com"
+TOKEN_URL = "https://twitter.com"
 
 
 class BirdwatchException(Exception):
