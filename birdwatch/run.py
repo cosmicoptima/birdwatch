@@ -3,33 +3,40 @@ import re
 import requests
 
 
+BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+# tried random user agent libraries; they kept generating unsupported browsers
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+URL = "https://api.twitter.com/2/search/adaptive.json"
+
+
 class APIException(Exception):
     def __init__(self, message, log_message=None):
         super().__init__(message)
 
         if log_message is not None:
-            open("errors.log", "a").write(f"ERR: {log_message}")
+            open("exception.log", "w").write(log_message)
 
 
 def init_session():
-    # tried random user agent libraries; they kept generating unsupported browsers
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    """Returns a session that can be passed into other functions.
+
+    This probably should not be used if it is possible to reuse an existing session."""
 
     # don't set bearer token before getting guest token; this causes 401
     session = requests.Session()
-    session.headers["User-Agent"] = user_agent
     session.headers.update(
         {
             "Authorization": "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-            "x-guest-token": get_token(session),
+            "x-guest-token": get_token(),
         }
     )
 
     return session
 
 
-def get_token(session):
-    response = session.get("https://twitter.com")
+def get_token():
+    response = requests.get("https://twitter.com", headers={"User-Agent": USER_AGENT})
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
@@ -42,26 +49,36 @@ def get_token(session):
 
 
 def get_page(session, q, cursor):
+    # counts >100 return 100 anyway
     # without "tweet_mode": "extended", long tweets are truncated
-    response = session.get(
-        "https://api.twitter.com/2/search/adaptive.json",
-        params={
-            "q": q,
-            "count": 100,
-            "cursor": cursor,
-            "tweet_mode": "extended",
-            "tweet_search_mode": "live",
-        },
-    ).json()
+    #         "tweet_search_mode": "live", only the first few pages contain tweets
+    params = {
+        "q": q,
+        "count": 100,
+        "cursor": cursor,
+        "tweet_mode": "extended",
+        "tweet_search_mode": "live",
+    }
 
-    data = response["globalObjects"]
+    response = session.get(URL, params=params)
+
+    if response.status_code == 429:
+        session.headers["x-guest-token"] = get_token()
+        response = session.get(URL, params=params)
+    if not response.ok:
+        raise APIException(
+            f"Failed with status code {response.status_code}",
+            f"Failed with status code {response.status_code}, full text:\n\n{response.text}",
+        )
+
+    data = response.json()["globalObjects"]
 
     # idk wtf i'm doing
-    cursor_base = response["timeline"]["instructions"]
+    cursor_base = response.json()["timeline"]["instructions"]
     from_loc = lambda l: l["content"]["operation"]["cursor"]["value"]
     try:
         next_cursor = from_loc(cursor_base[0]["addEntries"]["entries"][-1])
-    except (KeyError, IndexError):
+    except (IndexError, KeyError):
         next_cursor = from_loc(cursor_base[-1]["replaceEntry"]["entry"])
 
     return data, next_cursor
@@ -80,6 +97,7 @@ def from_user_raw(session, username, pages):
 
 
 def from_user(session, username, count=1000):
+    "Returns a user's tweets."
     pages = ceil(count / 100)
     data = from_user_raw(session, username, pages)
 
