@@ -8,7 +8,8 @@ BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1
 # tried random user agent libraries; they kept generating unsupported browsers
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
-URL = "https://api.twitter.com/2/search/adaptive.json"
+SEARCH_URL = "https://api.twitter.com/2/search/adaptive.json"
+TOKEN_URL = "https://mobile.twitter.com"
 
 
 class BirdwatchException(Exception):
@@ -30,7 +31,7 @@ def init_session():
 
 
 def get_token():
-    response = requests.get("https://twitter.com", headers={"User-Agent": USER_AGENT})
+    response = requests.get(TOKEN_URL, headers={"User-Agent": USER_AGENT})
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
@@ -54,7 +55,7 @@ def get_page(session, q, cursor):
         "tweet_search_mode": "live",
     }
 
-    response = session.get(URL, params=params)
+    response = session.get(SEARCH_URL, params=params)
 
     # single guest token can only be used so many times
     if response.status_code == 429:
