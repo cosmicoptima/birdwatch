@@ -6,7 +6,11 @@ __all__ = ["init_session", "from_user"]
 
 BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 # tried random user agent libraries; they kept generating unsupported browsers
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+# USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+# testing if guest tokens refresh indefinitely w/ correct user agent
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0"
+)
 
 URL = "https://api.twitter.com/2/search/adaptive.json"
 
@@ -92,7 +96,7 @@ def from_user_raw(session, username, pages):
 
 
 def from_user(session, username, count=1000):
-    "Returns a user's tweets."
+    """Returns a user's tweets."""
     pages = ceil(count / 100)
     data = from_user_raw(session, username, pages)
 
