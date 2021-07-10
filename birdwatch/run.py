@@ -37,7 +37,7 @@ def init_session():
     return session
 
 
-def get_token(3):
+def get_token():
     for i in range(3):
         token, response = request_token()
         if token is not None:
@@ -57,7 +57,7 @@ def request_token():
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
-    return None, response if match is None else match.group(1), response
+    return (None if match is None else match.group(1)), response
 
 
 def get_page(session, q, cursor):
