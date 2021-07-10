@@ -1,5 +1,6 @@
 from math import ceil
 import logging
+import random
 import re
 import requests
 from time import sleep
@@ -37,14 +38,22 @@ def init_session():
     return session
 
 
-def get_token():
-    for i in range(3):
+def get_token(wait_on_fail):
+    if wait_on_fail:
+        for i in range(8):
+            token, response = request_token()
+            if token is not None:
+                return token
+
+            time_to_wait = 8 ** i * random.uniform(0.5, 1.5)
+            logging.warning(
+                f"No guest token, status code {response.status_code}, retrying in {time_to_wait} secs"
+            )
+            sleep(time_to_wait)
+    else:
         token, response = request_token()
         if token is not None:
             return token
-
-        logging.warning(f"No guest token, status code {response.status_code}, retrying")
-        sleep(2 ** i)
 
     raise APIException(
         f"No guest token, status code {response.status_code}",
@@ -60,7 +69,7 @@ def request_token():
     return (None if match is None else match.group(1)), response
 
 
-def get_page(session, q, cursor):
+def get_page(session, q, cursor, wait_on_fail):
     # counts >100 return 100 anyway
     # without "tweet_mode": "extended", long tweets are truncated
     #         "tweet_search_mode": "live", only the first few pages contain tweets
@@ -75,7 +84,7 @@ def get_page(session, q, cursor):
     response = session.get(URL, params=params)
 
     if response.status_code == 429:
-        session.headers["x-guest-token"] = get_token()
+        session.headers["x-guest-token"] = get_token(wait_on_fail)
         response = session.get(URL, params=params)
     if not response.ok:
         raise APIException(
@@ -96,11 +105,11 @@ def get_page(session, q, cursor):
     return data, next_cursor
 
 
-def from_user_raw(session, username, pages):
+def from_user_raw(session, username, pages, wait_on_fai):
     data, cursor = get_page(session, f"from:{username}", -1)
 
     for _ in range(pages - 1):
-        next_page, cursor = get_page(session, f"from:{username}", cursor)
+        next_page, cursor = get_page(session, f"from:{username}", cursor, wait_on_fail)
 
         for category in data:
             data[category].update(next_page[category])
@@ -108,10 +117,10 @@ def from_user_raw(session, username, pages):
     return data
 
 
-def from_user(session, username, count=1000):
+def from_user(session, username, count=1000, wait_on_fail=False):
     "Returns a user's tweets."
     pages = ceil(count / 100)
-    data = from_user_raw(session, username, pages)
+    data = from_user_raw(session, username, pages, wait_on_fail)
 
     # raw returned mentions as well before; not sure if it does now
     # if not, most of this is unnecessary
