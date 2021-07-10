@@ -5,6 +5,7 @@ import re
 import requests
 from time import sleep
 
+__all__ = ["init_session", "from_user"]
 
 BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 # tried random user agent libraries; they kept generating unsupported browsers
@@ -25,8 +26,6 @@ def init_session():
     """Returns a session that can be passed into other functions.
 
     This probably should not be used if it is possible to reuse an existing session."""
-
-    # don't set bearer token before getting guest token; this causes 401
     session = requests.Session()
     session.headers.update({"Authorization": BEARER, "x-guest-token": get_token()})
 
@@ -60,6 +59,7 @@ def get_page(session, q, cursor):
 
     response = session.get(URL, params=params)
 
+    # single guest token can only be used so many times
     if response.status_code == 429:
         session.headers["x-guest-token"] = get_token()
         response = session.get(URL, params=params)
@@ -99,7 +99,7 @@ def from_user(session, username, count=1000):
     pages = ceil(count / 100)
     data = from_user_raw(session, username, pages)
 
-    # raw returned mentions as well before; not sure if it does now
+    # raw returned follows/mentions(?) as well before; not sure if it does now
     # if not, most of this is unnecessary
     try:
         user_id = [
