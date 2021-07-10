@@ -37,13 +37,13 @@ def init_session():
     return session
 
 
-def get_token():
+def get_token(3):
     for i in range(3):
         token, response = request_token()
         if token is not None:
             return token
 
-        logging.warning(f"No guest token, status code {response.status code}, retrying")
+        logging.warning(f"No guest token, status code {response.status_code}, retrying")
         sleep(2 ** i)
 
     raise APIException(
