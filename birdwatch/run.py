@@ -1,6 +1,8 @@
 from math import ceil
+import logging
 import re
 import requests
+from time import sleep
 
 
 BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
@@ -36,16 +38,26 @@ def init_session():
 
 
 def get_token():
+    for i in range(3):
+        token, response = request_token()
+        if token is not None:
+            return token
+
+        logging.warning(f"No guest token, status code {response.status code}, retrying")
+        sleep(2 ** i)
+
+    raise APIException(
+        f"No guest token, status code {response.status_code}",
+        f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
+    )
+
+
+def request_token():
     response = requests.get("https://twitter.com", headers={"User-Agent": USER_AGENT})
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
-    if match is None:
-        raise APIException(
-            f"No guest token, status code {response.status_code}",
-            f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
-        )
-    return match.group(1)
+    return None, response if match is None else match.group(1), response
 
 
 def get_page(session, q, cursor):
