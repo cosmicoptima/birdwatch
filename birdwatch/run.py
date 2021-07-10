@@ -38,7 +38,7 @@ def init_session():
     return session
 
 
-def get_token(wait_on_fail):
+def get_token(wait_on_fail=False):
     if wait_on_fail:
         for i in range(8):
             token, response = request_token()
