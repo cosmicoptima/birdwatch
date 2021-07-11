@@ -14,17 +14,6 @@ SEARCH_URL = "https://api.twitter.com/2/search/adaptive.json"
 # some proxies may not support https
 TOKEN_URL = "http://twitter.com"
 
-PROXY_LIST = get_proxies()
-current_proxy = None
-
-
-class BirdwatchException(Exception):
-    def __init__(self, message, log_message=None):
-        super().__init__(message)
-
-        if log_message is not None:
-            open("exception.log", "w").write(log_message)
-
 
 def get_proxies():
     proxy_list = requests.get(
@@ -35,6 +24,18 @@ def get_proxies():
     proxies = [proxy for proxy, status in proxy_list if status == "success"]
 
     return proxies
+
+
+PROXY_LIST = get_proxies()
+current_proxy = None
+
+
+class BirdwatchException(Exception):
+    def __init__(self, message, log_message=None):
+        super().__init__(message)
+
+        if log_message is not None:
+            open("exception.log", "w").write(log_message)
 
 
 def init_session():
