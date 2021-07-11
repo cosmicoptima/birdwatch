@@ -1,4 +1,5 @@
 from math import ceil
+import logging
 import random
 import re
 import requests
@@ -43,26 +44,33 @@ def get_token(proxy=None):
     session.proxies.update({"http": proxy})
 
     try:
-        response = session.get(TOKEN_URL, timeout=10)
+        response = session.get(TOKEN_URL, timeout=5)
     # some proxies are dead or have ridiculous latency
     # TODO limit # of retries
     except (ProxyError, Timeout):
-        return get_token(proxy=random.choice(PROXY_LIST))
+        logging.warning("Connection failed, retrying")
+        return get_token_from_proxy()
 
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
     if match is None:
-        # try proxy in case ip is blocked, else fail
-        if proxy is None:
-            return get_token(proxy=random.choice(PROXY_LIST))
-        else:
-            raise BirdwatchException(
-                f"No guest token, status code {response.status_code}",
-                f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
-            )
+        logging.warning("Guest token not found, retrying")
+        return get_token_from_proxy()
+        # # try proxy in case ip is blocked, else fail
+        # if proxy is None:
+        #     return get_token(proxy=random.choice(PROXY_LIST))
+        # else:
+        #     raise BirdwatchException(
+        #         f"No guest token, status code {response.status_code}",
+        #         f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
+        #     )
 
     return match.group(1)
+
+
+def get_token_from_proxy():
+    return get_token(proxy=random.choice(PROXY_LIST))
 
 
 def get_page(session, q, cursor):
