@@ -4,7 +4,7 @@ Twitter scraper similar to Twint, but without the bloat. It also
 supports higher rates than snscrape.
 
 Currently birdwatch works well for most use cases, but is a bit
-bare-bones and very unstable at higher speeds.
+bare-bones and very unstable at higher speeds (eg 100 threads).
 
 ## usage
 
