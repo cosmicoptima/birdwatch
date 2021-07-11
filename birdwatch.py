@@ -1,4 +1,3 @@
-import logging
 from math import ceil
 import random
 import re
@@ -15,9 +14,7 @@ SEARCH_URL = "https://api.twitter.com/2/search/adaptive.json"
 # some proxies may not support https
 TOKEN_URL = "http://twitter.com"
 
-PROXY_LIST = requests.get(
-    "https://github.com/TheSpeedX/PROXY-List/raw/master/http.txt"
-).text.splitlines()
+PROXY_LIST = get_proxies()
 current_proxy = None
 
 
@@ -27,6 +24,17 @@ class BirdwatchException(Exception):
 
         if log_message is not None:
             open("exception.log", "w").write(log_message)
+
+
+def get_proxies():
+    proxy_list = requests.get(
+        "https://github.com/clarketm/proxy-list/raw/master/proxy-list-status.txt"
+    ).text.splitlines()
+
+    proxy_list = [row.split(": ") for row in proxy_list]
+    proxies = [proxy for proxy, status in proxy_list if status == "success"]
+
+    return proxies
 
 
 def init_session():
@@ -50,8 +58,6 @@ def get_token():
 
     # most proxies don't work, so find a good one and stick with it
     if match is None:
-        logging.warning("Can't find guest token, switching to proxy")
-
         while True:
             proxy = random.choice(PROXY_LIST)
             session.proxies["http"] = proxy
