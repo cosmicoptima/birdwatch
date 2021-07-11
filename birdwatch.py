@@ -1,4 +1,5 @@
 from math import ceil
+import random
 import re
 import requests
 
@@ -9,7 +10,12 @@ BEARER = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 SEARCH_URL = "https://api.twitter.com/2/search/adaptive.json"
-TOKEN_URL = "https://twitter.com"
+# some proxies may not support https
+TOKEN_URL = "http://twitter.com"
+
+PROXY_LIST = requests.get(
+    "https://github.com/TheSpeedX/PROXY-List/raw/master/http.txt"
+).text.splitlines()
 
 
 class BirdwatchException(Exception):
@@ -30,16 +36,24 @@ def init_session():
     return session
 
 
-def get_token():
-    response = requests.get(TOKEN_URL, headers={"User-Agent": USER_AGENT})
+def get_token(proxy=None):
+    session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
+    session.proxies.update({"http": proxy})
+
+    response = session.get(TOKEN_URL, headers={"User-Agent": USER_AGENT})
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
     if match is None:
-        raise BirdwatchException(
-            f"No guest token, status code {response.status_code}",
-            f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
-        )
+        if proxy is None:
+            return get_token(proxy=random.choice(PROXY_LIST))
+        else:
+            raise BirdwatchException(
+                f"No guest token, status code {response.status_code}",
+                f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
+            )
+
     return match.group(1)
 
 
