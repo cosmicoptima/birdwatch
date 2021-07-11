@@ -50,7 +50,8 @@ def get_token():
 
     # most proxies don't work, so find a good one and stick with it
     if match is None:
-        logging.warning("Can't find guest token, finding proxy")
+        logging.warning("Can't find guest token, switching to proxy")
+
         while True:
             proxy = random.choice(PROXY_LIST)
             session.proxies["http"] = proxy
