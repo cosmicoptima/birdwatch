@@ -2,6 +2,7 @@ from math import ceil
 import random
 import re
 import requests
+from requests.exceptions import ProxyError, Timeout
 
 __all__ = ["init_session", "from_user"]
 
@@ -41,11 +42,18 @@ def get_token(proxy=None):
     session.headers.update({"User-Agent": USER_AGENT})
     session.proxies.update({"http": proxy})
 
-    response = session.get(TOKEN_URL, headers={"User-Agent": USER_AGENT})
+    try:
+        response = session.get(TOKEN_URL, timeout=10)
+    # some proxies are dead or have ridiculous latency
+    # TODO limit # of retries
+    except (ProxyError, Timeout):
+        return get_token(proxy=random.choice(PROXY_LIST))
+
     # i stole this regex from twint, so if it looks wrong it probably is
     match = re.search(r'\("gt=(\d+);', response.text)
 
     if match is None:
+        # try proxy in case ip is blocked, else fail
         if proxy is None:
             return get_token(proxy=random.choice(PROXY_LIST))
         else:
