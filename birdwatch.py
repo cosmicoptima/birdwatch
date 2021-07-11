@@ -43,7 +43,8 @@ def get_token():
     global current_proxy
 
     session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT, "http": current_proxy})
+    session.headers["User-Agent"] = USER_AGENT
+    session.proxies["http"] = current_proxy
 
     match = request_token(session)
 
