@@ -1,3 +1,4 @@
+import logging
 from math import ceil
 import random
 import re
@@ -48,6 +49,7 @@ def get_token():
 
     # most proxies don't work, so find a good one and stick with it
     if match is None:
+        logging.warning("Can't find guest token, finding proxy")
         while True:
             proxy = random.choice(PROXY_LIST)
             session.proxies["http"] = proxy
