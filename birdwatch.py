@@ -18,7 +18,7 @@ TOKEN_URL = "http://twitter.com"
 def get_proxies():
     proxy_list = requests.get(
         "https://github.com/clarketm/proxy-list/raw/master/proxy-list-status.txt"
-    ).text.splitlines()
+    ).text.splitlines()[:-6]
 
     proxy_list = [row.split(": ") for row in proxy_list]
     proxies = [proxy for proxy, status in proxy_list if status == "success"]
