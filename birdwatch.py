@@ -1,5 +1,4 @@
 from math import ceil
-import logging
 import random
 import re
 import requests
@@ -18,6 +17,7 @@ TOKEN_URL = "http://twitter.com"
 PROXY_LIST = requests.get(
     "https://github.com/TheSpeedX/PROXY-List/raw/master/http.txt"
 ).text.splitlines()
+current_proxy = None
 
 
 class BirdwatchException(Exception):
@@ -38,39 +38,36 @@ def init_session():
     return session
 
 
-def get_token(proxy=None):
+def get_token():
+    global current_proxy
+
     session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
-    session.proxies.update({"http": proxy})
+    session.headers.update({"User-Agent": USER_AGENT, "http": current_proxy})
 
-    try:
-        response = session.get(TOKEN_URL, timeout=5)
-    # some proxies are dead or have ridiculous latency
-    # TODO limit # of retries
-    except (ProxyError, Timeout):
-        logging.warning("Connection failed, retrying")
-        return get_token_from_proxy()
+    match = request_token(session)
 
-    # i stole this regex from twint, so if it looks wrong it probably is
-    match = re.search(r'\("gt=(\d+);', response.text)
-
+    # most proxies don't work, so find a good one and stick with it
     if match is None:
-        logging.warning("Guest token not found, retrying")
-        return get_token_from_proxy()
-        # # try proxy in case ip is blocked, else fail
-        # if proxy is None:
-        #     return get_token(proxy=random.choice(PROXY_LIST))
-        # else:
-        #     raise BirdwatchException(
-        #         f"No guest token, status code {response.status_code}",
-        #         f"No guest token, status code {response.status_code}, full text:\n\n{response.text}",
-        #     )
+        while True:
+            proxy = random.choice(PROXY_LIST)
+            session.proxies["http"] = proxy
+
+            try:
+                match = request_token(session)
+            except (ProxyError, Timeout):
+                continue
+
+            if match is not None:
+                current_proxy = proxy
+                break
 
     return match.group(1)
 
 
-def get_token_from_proxy():
-    return get_token(proxy=random.choice(PROXY_LIST))
+def request_token(session):
+    response = session.get(TOKEN_URL, timeout=5)
+    # i stole this regex from twint, so if it looks wrong it probably is
+    return re.search(r'\("gt=(\d+);', response.text)
 
 
 def get_page(session, q, cursor):
