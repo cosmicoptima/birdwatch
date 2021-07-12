@@ -1,3 +1,4 @@
+import logging
 from math import ceil
 import random
 import re
@@ -57,6 +58,9 @@ class Scraper:
 
         # most proxies don't work, so find a good one and stick with it
         if match is None:
+            if self.proxy is None:
+                logging.warning("Switching to proxy")
+
             while True:
                 proxy = random.choice(self.proxies)
                 session.proxies["http"] = proxy

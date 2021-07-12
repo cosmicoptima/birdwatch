@@ -1,4 +1,4 @@
-from birdwatch import *
+from birdwatch import Scraper
 
 
 def test_init_scraper():
