@@ -10,12 +10,12 @@ bare-bones and very unstable at higher speeds (eg 100 threads).
 
 birdwatch is currently usable as a Python library.
 
-Create a session with `init_session` then pass it into `from_user` to
-get a user's tweets:
+Create a scraper object with `Scraper` then call its `from_user`
+method to get a user's tweets:
 
 	import birdwatch
 
-	session = birdwatch.init_session()
-	tweets = birdwatch.from_user(session, "parafactual", count=2000)
+	scraper = Scraper()
+	tweets = scraper.from_user("parafactual", count=2000)
 
 `count` defaults to 1000 and is not exact.

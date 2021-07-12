@@ -1,10 +1,10 @@
 from birdwatch import *
 
 
-def test_init_session():
-    global session
-    session = init_session()
+def test_init_scraper():
+    global scraper
+    scraper = Scraper()
 
 
 def test_from_user():
-    from_user(session, "jack")
+    scraper.from_user("jack")
