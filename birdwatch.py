@@ -1,9 +1,13 @@
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from functools import partial
 import logging
 from math import ceil
 import random
 import re
 import requests
 from requests.exceptions import ProxyError, Timeout
+from typing import Optional
 
 __all__ = ["Scraper"]
 
@@ -39,10 +43,19 @@ class BirdwatchException(Exception):
             open("exception.log", "w").write(log_message)
 
 
+@dataclass
+class Tweet:
+    text: str
+    user_id: int
+
+    likes: Optional[int] = None
+    retweets: Optional[int] = None
+
+
 class Scraper:
     def __init__(self):
-        self.current_proxy = None
         self.proxies = get_proxies()
+        self.current_proxy = None
 
         self.session = requests.Session()
         self.session.headers.update(
@@ -50,6 +63,9 @@ class Scraper:
         )
 
     def get_token(self):
+        # this is the only method that benefits from scraper being an object
+        # a separate scraper session object might be better
+
         session = requests.Session()
         session.headers["User-Agent"] = USER_AGENT
         session.proxies["http"] = self.current_proxy
@@ -84,6 +100,7 @@ class Scraper:
         # counts >100 return 100 anyway
         # without "tweet_mode": "extended", long tweets are truncated
         #         "tweet_search_mode": "live", only the first few pages contain tweets
+        # TODO find params to get quote count
         params = {
             "q": q,
             "count": 100,
@@ -116,16 +133,34 @@ class Scraper:
 
         return data, next_cursor
 
-    def from_user_raw(self, username, pages):
-        data, cursor = self.get_page(f"from:{username}", -1)
+    def from_query_raw(self, q, pages):
+        data, cursor = self.get_page(q, None)
 
         for _ in range(pages - 1):
-            next_page, cursor = self.get_page(f"from:{username}", cursor)
+            next_page, cursor = self.get_page(q, cursor)
 
             for category in data:
                 data[category].update(next_page[category])
 
         return data
+
+    def from_query(self, q, count=1000):
+        """Returns tweets that match a Twitter search query."""
+        pages = ceil(count / 100)
+        data = self.from_query_raw(q, pages)
+
+        return [self.to_object(tweet) for tweet in data["tweets"].values()]
+
+    def to_object(self, tweet):
+        return Tweet(
+            tweet["full_text"],
+            tweet["user_id"],
+            likes=tweet["favorite_count"],
+            retweets=tweet["retweet_count"],
+        )
+
+    def from_user_raw(self, username, pages):
+        return self.from_query_raw(f"from:{username}", pages)
 
     def from_user(self, username, count=1000):
         """Returns a user's tweets."""
@@ -148,9 +183,16 @@ class Scraper:
             )
 
         tweets = [
-            tweet["full_text"]
+            self.to_object(tweet)
             for tweet in data["tweets"].values()
             if tweet["user_id"] == user_id
         ]
 
         return tweets
+
+    def from_users(users, count=1000, workers=100):
+        """Retrieve and return the tweets of multiple users concurrently."""
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            from_user = partial(self.from_user, count=count)
+
+            return executor.map(from_user, users)
