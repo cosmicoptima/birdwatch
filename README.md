@@ -18,4 +18,13 @@ method to get a user's tweets:
 	scraper = Scraper()
 	tweets = scraper.from_user("parafactual", count=2000)
 
-`count` defaults to 1000 and is not exact.
+(`count` defaults to 1000 and is not exact.)
+
+This will return a `Tweet` object with the following attributes:
+
+- `text`
+- `user_id`
+- `likes`
+- `retweets`
+- `quotes`
+- `replies`

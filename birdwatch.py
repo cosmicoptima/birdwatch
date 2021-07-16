@@ -50,6 +50,8 @@ class Tweet:
 
     likes: Optional[int] = None
     retweets: Optional[int] = None
+    quotes: Optional[int] = None
+    replies: Optional[int] = None
 
 
 class Scraper:
@@ -100,13 +102,14 @@ class Scraper:
         # counts >100 return 100 anyway
         # without "tweet_mode": "extended", long tweets are truncated
         #         "tweet_search_mode": "live", only the first few pages contain tweets
-        # TODO find params to get quote count
         params = {
             "q": q,
             "count": 100,
             "cursor": cursor,
             "tweet_mode": "extended",
             "tweet_search_mode": "live",
+            "include_quote_count": True,
+            "include_reply_count": True,
         }
 
         response = self.session.get(SEARCH_URL, params=params)
@@ -157,6 +160,8 @@ class Scraper:
             tweet["user_id"],
             likes=tweet["favorite_count"],
             retweets=tweet["retweet_count"],
+            quotes=tweet["quote_count"],
+            replies=tweet["reply_count"],
         )
 
     def from_user_raw(self, username, pages):
