@@ -70,7 +70,7 @@ class Scraper:
 
         session = requests.Session()
         session.headers["User-Agent"] = USER_AGENT
-        session.proxies["http"] = self.current_proxy
+        session.proxies["http"] = f"http://{self.current_proxy}"
 
         match = self.request_token(session)
 
