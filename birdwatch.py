@@ -76,7 +76,7 @@ class Scraper:
 
         # most proxies don't work, so find a good one and stick with it
         if match is None:
-            if self.proxy is None:
+            if self.current_proxy is None:
                 logging.warning("Switching to proxy")
 
             while True:
@@ -195,7 +195,7 @@ class Scraper:
 
         return tweets
 
-    def from_users(users, count=1000, workers=100):
+    def from_users(self, users, count=1000, workers=100):
         """Retrieve and return the tweets of multiple users concurrently."""
         with ThreadPoolExecutor(max_workers=workers) as executor:
             from_user = partial(self.from_user, count=count)
